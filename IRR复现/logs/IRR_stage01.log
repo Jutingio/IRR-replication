@@ -1,0 +1,393 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  E:\论文复现\IRR复现\logs/IRR_stage01.log
+  log type:  text
+ opened on:  30 Jul 2026, 16:18:38
+
+. use "Data/Raw/IRRData_Penn.dta", clear
+
+. 
+. *====== 数据预处理 ======ORZ
+. describe
+
+Contains data from Data/Raw/IRRData_Penn.dta
+ Observations:         2,880                  
+    Variables:            52                  29 May 2019 16:34
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+subjroundid     float   %9.0g                 Subject-Round ID
+subjid          float   %9.0g                 Subject ID
+firmid          float   %9.0g                 Firm ID
+rating_hire     float   %9.0g                 Hiring Interest (1-10)
+rating_accept   byte    %10.0g                Likelihood of acceptance (1-10)
+randgpa         double  %10.0g                Resume GPA
+randname        str19   %19s                  Resume Name
+randschool      str41   %41s                  Resume school within university
+randmajor       str50   %50s                  Resume Major
+randworkexp     str61   %61s                  Resume first work experience organization
+randworkexppos  str67   %67s                  Resume first work experience position
+randworkexploc  str26   %26s                  Resume first work experience location
+randworkexpb~t1 str266  %266s                 Resume first work experience bullet 1
+randworkexpb~t2 str735  %735s                 Resume first work experience bullet 2
+randworkexpb~t3 str260  %260s                 Resume first work experience bullet 3
+randleadexp     str66   %66s                  Resume first leadership experience organization
+randleadexppo~n str56   %56s                  Resume first leadership experience position
+randleadexpdate str9    %9s                   Resume first leadership experience dates
+randleadexpb~t1 str236  %236s                 Resume first leadership experience bullet 1
+randleadexpb~t2 str260  %260s                 Resume first leadership experience bullet 2
+randleadexpb~t3 str211  %211s                 Resume first leadership experience bullet 3
+randskills      str266  %266s                 Resume skills
+randworkexptwo  str58   %58s                  Resume second work experience experience organization
+randworkexppo~o str57   %57s                  Resume second work experience position
+randworkexplo~o str24   %24s                  Resume second work experience location
+randworkexpb~o1 str302  %302s                 Resume second work experience bullet 1
+randworkexpb~o2 str226  %226s                 Resume second work experience bullet 2
+randworkexpb~o3 str217  %217s                 Resume second work experience bullet 3
+randleadexptwo  str66   %66s                  Resume second leadership experience organization
+randleadexppo~o str56   %56s                  Resume second leadership experience position
+randleadexpda~o str9    %9s                   Resume second leadership experience dates
+randleadexpb~o1 str236  %236s                 Resume second leadership experience bullet 1
+randleadexpb~o2 str260  %260s                 Resume second leadership experience bullet 2
+randleadexpb~o3 str211  %211s                 Resume second leadership experience bullet 3
+randfirstname~r str6    %9s                   Resume gender (indicated by name)
+rand_eth        float   %9.0g      randethtype
+                                              Resume ethnicity (indicated by name)
+rater_years_a~g byte    %10.0g                Number of years subject has worked at the organization
+rater_yearshi~g byte    %10.0g                Number of years subject has had responsibilities associated with job candidates
+rater_college   byte    %10.0g                Subject has a college degree? 1=yes, 0=no
+rater_age       float   %9.0g      agetype    Subject age category
+rater_female    float   %9.0g      genderlbl
+                                              Subject is female? 1=yes, 0=no
+rater_ethnicity float   %22.0g     eth_displaylbl
+                                              Subject ethnicity
+resumenumber    byte    %9.0g                 Order of resume in experiment
+major_type      byte    %51.0g     majortype
+                                              Major category company is looking for
+timing_pagesu~t double  %10.0g                Timing of page submit for resume review
+round           float   %16.0g     roundlbl   Experimental Round
+wfm             float   %9.0g                 Work for Money
+topemp          float   %9.0g                 Top Internship
+techskills      float   %9.0g                 Technical Skills
+secondint       float   %9.0g                 Second Internship
+NarrativeScore  float   %16.0g     narrlbl    Resume work experience narrative
+gpaprob         float   %9.0g                 GPA density of real resumes
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Sorted by: 
+
+. count
+  2,880
+
+. 
+. codebook subjroundid
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+subjroundid                                                                                                                                         Subject-Round ID
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (float)
+
+                 Range: [101,293]                     Units: 1
+         Unique values: 72                        Missing .: 0/2,880
+
+                  Mean: 183.458
+             Std. dev.: 70.4426
+
+           Percentiles:     10%       25%       50%       75%       90%
+                            111     121.5     151.5     269.5       280
+
+. isid subjroundid resumenumber
+
+. bysort subjroundid:assert _N == 40 //_N：前面有空行，Stata 内置符号，表示当前组共有多少条观测
+
+. 
+. 
+. *数据区分断言
+. * 两个因变量必须是1—10之间的整数
+. assert inrange(rating_hire, 1, 10) ///
+>     & rating_hire == floor(rating_hire)
+
+. 
+. assert inrange(rating_accept, 1, 10) ///
+>     & rating_accept == floor(rating_accept)
+
+. 
+. * 第二段实习与赚钱型工作不能同时出现
+. assert inlist(secondint, 0, 1)
+
+. assert inlist(wfm, 0, 1)
+
+. assert !(secondint == 1 & wfm == 1)
+
+. 
+. * 构造人口统计变量前检查原始字段缺失
+. assert !missing(randfirstname_gender)
+
+. assert !missing(rand_eth)
+
+. 
+. 
+. *tab查看分类变量的频数分布
+. tab rating_hire,missing
+
+     Hiring |
+   Interest |
+     (1-10) |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 |        446       15.49       15.49
+          2 |        275        9.55       25.03
+          3 |        337       11.70       36.74
+          4 |        309       10.73       47.47
+          5 |        339       11.77       59.24
+          6 |        337       11.70       70.94
+          7 |        363       12.60       83.54
+          8 |        245        8.51       92.05
+          9 |        144        5.00       97.05
+         10 |         85        2.95      100.00
+------------+-----------------------------------
+      Total |      2,880      100.00
+
+. tab secondint wfm,missing //这是行内注释的标记，第二段工作经历的添加是否会对评价有影响，以secondint与wfm组合来看 
+
+    Second |    Work for Money
+Internship |         0          1 |     Total
+-----------+----------------------+----------
+         0 |     1,008        936 |     1,944 
+         1 |       936          0 |       936 
+-----------+----------------------+----------
+     Total |     1,944        936 |     2,880 
+
+. summarize randgpa
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+     randgpa |      2,880     3.46341    .3187847        2.9          4
+
+. 
+. /*
+> 关于注释：
+> 1.//：代码后面写解释；
+> 2.*：注释掉一整行；
+> 3./* ... */：注释掉多行；
+> 4.///：一条很长的命令换行继续写。
+> */
+. 
+. *==================
+. *======Table2======
+. *==================
+. 
+. * 1.利用已知数据构造并统计
+. *------1.1人口统计特征虚拟变量
+. *有性别与种族两个维度，4类 
+. gen byte rand_female = (randfirstname_gender == "female") //记得"=="恒等，"="不行
+
+. label variable rand_female "female candidate"
+
+. 
+. gen byte white = (rand_eth == "White":randethtype) //在名为 randethtype 的值标签中，找出"White"对应的数值。
+
+. label variable white "White candidate"
+
+. 
+. gen byte whitefemale = (rand_female == 1 & white == 1)
+
+. label variable whitefemale "Female,White"
+
+. gen byte nonwhite_female = (rand_female == 1 & white == 0)
+
+. label variable nonwhite_female "Female,Non-White"
+
+. gen byte nonwhite_male = (rand_female == 0 & white == 0)
+
+. label variable nonwhite_male "Man,Non-White"
+
+. gen byte whitemale = (rand_female == 0 & white == 1)
+
+. label variable whitemale "Man,White"
+
+. 
+. *检查是否全部覆盖,是否不重不漏
+. assert whitefemale + nonwhite_female + nonwhite_male + whitemale == 1
+
+. 
+. *统计并查看人数
+. tab rand_female white,missing //总的
+
+    female |    White candidate
+ candidate |         0          1 |     Total
+-----------+----------------------+----------
+         0 |       519        897 |     1,416 
+         1 |       495        969 |     1,464 
+-----------+----------------------+----------
+     Total |     1,014      1,866 |     2,880 
+
+. 
+. *------1.2 专业
+. tab randmajor,generate(imajor) //查看专业频数，根据专业自动生成0/1变量
+
+                           Resume Major |      Freq.     Percent        Cum.
+----------------------------------------+-----------------------------------
+                     BA in Biochemistry |         43        1.49        1.49
+                          BA in Biology |         36        1.25        2.74
+                        BA in Chemistry |         47        1.63        4.38
+                BA in Cognitive Science |         28        0.97        5.35
+                    BA in Communication |        116        4.03        9.38
+                        BA in Economics |        423       14.69       24.06
+                          BA in English |        100        3.47       27.53
+                          BA in History |        100        3.47       31.01
+                   BA in History of Art |         52        1.81       32.81
+          BA in International Relations |         47        1.63       34.44
+                      BA in Mathematics |         43        1.49       35.94
+                       BA in Philosophy |         50        1.74       37.67
+                          BA in Physics |         36        1.25       38.92
+                BA in Political Science |        157        5.45       44.38
+                       BA in Psychology |        156        5.42       49.79
+                        BA in Sociology |         49        1.70       51.49
+                   BS in Bioengineering |         50        1.74       53.23
+               BS in Biomedical Science |         71        2.47       55.69
+BS in Chemical and Biomolecular Engin.. |         35        1.22       56.91
+                BS in Cognitive Science |         36        1.25       58.16
+            BS in Computational Biology |         42        1.46       59.62
+             BS in Computer Engineering |        147        5.10       64.72
+                 BS in Computer Science |         38        1.32       66.04
+                        BS in Economics |        790       27.43       93.47
+           BS in Electrical Engineering |         46        1.60       95.07
+BS in Materials Science and Engineering |         48        1.67       96.74
+BS in Mechanical Engineering and Appl.. |         57        1.98       98.72
+BS in Networked and Social Systems En.. |         15        0.52       99.24
+  BS in Systems Science and Engineering |         22        0.76      100.00
+----------------------------------------+-----------------------------------
+                                  Total |      2,880      100.00
+
+. 
+. describe imajor* //*是通配符，表示所有以 imajor 开头的变量。
+
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+imajor1         byte    %8.0g                 randmajor==BA in Biochemistry
+imajor2         byte    %8.0g                 randmajor==BA in Biology
+imajor3         byte    %8.0g                 randmajor==BA in Chemistry
+imajor4         byte    %8.0g                 randmajor==BA in Cognitive Science
+imajor5         byte    %8.0g                 randmajor==BA in Communication
+imajor6         byte    %8.0g                 randmajor==BA in Economics
+imajor7         byte    %8.0g                 randmajor==BA in English
+imajor8         byte    %8.0g                 randmajor==BA in History
+imajor9         byte    %8.0g                 randmajor==BA in History of Art
+imajor10        byte    %8.0g                 randmajor==BA in International Relations
+imajor11        byte    %8.0g                 randmajor==BA in Mathematics
+imajor12        byte    %8.0g                 randmajor==BA in Philosophy
+imajor13        byte    %8.0g                 randmajor==BA in Physics
+imajor14        byte    %8.0g                 randmajor==BA in Political Science
+imajor15        byte    %8.0g                 randmajor==BA in Psychology
+imajor16        byte    %8.0g                 randmajor==BA in Sociology
+imajor17        byte    %8.0g                 randmajor==BS in Bioengineering
+imajor18        byte    %8.0g                 randmajor==BS in Biomedical Science
+imajor19        byte    %8.0g                 randmajor==BS in Chemical and Biomolecular Engineering
+imajor20        byte    %8.0g                 randmajor==BS in Cognitive Science
+imajor21        byte    %8.0g                 randmajor==BS in Computational Biology
+imajor22        byte    %8.0g                 randmajor==BS in Computer Engineering
+imajor23        byte    %8.0g                 randmajor==BS in Computer Science
+imajor24        byte    %8.0g                 randmajor==BS in Economics
+imajor25        byte    %8.0g                 randmajor==BS in Electrical Engineering
+imajor26        byte    %8.0g                 randmajor==BS in Materials Science and Engineering
+imajor27        byte    %8.0g                 randmajor==BS in Mechanical Engineering and Applied Mechanics
+imajor28        byte    %8.0g                 randmajor==BS in Networked and Social Systems Engineering
+imajor29        byte    %8.0g                 randmajor==BS in Systems Science and Engineering
+
+. 
+. *每份简历只属于一个专业
+. egen major_total = rowtotal(imajor*) //egen生成命令 rowtotal()行相加 imajor*所有专业虚拟变量
+
+. assert major_total == 1 //确认一份简历只有一个专业
+
+. tab major_total
+
+major_total |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 |      2,880      100.00      100.00
+------------+-----------------------------------
+      Total |      2,880      100.00
+
+. drop major_total //删除用于检查的辅助变量
+
+. 
+. *------1.3 领导经历
+. encode randleadexp,generate(lead1)
+
+. encode randleadexptwo,generate(lead2)
+
+. label variable randleadexp "First leadship experience"
+
+. label variable randleadexptwo "Second leadship experience"
+
+. 
+. *知道取值边界并检查
+. quietly tabulate lead1
+
+. local n_lead1 = r(r) //local 临时保存，避免覆盖
+
+. display "lead1类别数 =" `n_lead1'
+lead1类别数 =80
+
+. assert `n_lead1' == 80 //有个`和'，因为 n_lead1 是一个 local 宏（临时存储值）。在 Stata 中，引用 local 宏时必须使用`宏名'
+
+. 
+. quietly tabulate lead2
+
+. local n_lead2 = r(r)
+
+. display "lead2类别数 = " `n_lead2' 
+lead2类别数 = 80
+
+. assert `n_lead2' == 80
+
+. 
+. *检查类别数量、缺失值
+. codebook lead1 lead2
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+lead1                                                                                                                Resume first leadership experience organization
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (long)
+                 Label: lead1
+
+                 Range: [1,80]                        Units: 1
+         Unique values: 80                        Missing .: 0/2,880
+
+              Examples: 17    Finance Club
+                        33    MUSE - Undergraduate Marketing Club
+                        49    Penn Outdoors Club
+                        64    Social Planning and Events Committee
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+lead2                                                                                                               Resume second leadership experience organization
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (long)
+                 Label: lead2
+
+                 Range: [1,80]                        Units: 1
+         Unique values: 80                        Missing .: 0/2,880
+
+              Examples: 16    FBLA
+                        32    MUSE - Community Service
+                        48    Penn Move Out
+                        65    Spoon University
+
+. assert !missing(lead1) & !missing(lead2)
+
+. 
+. *------保存好处理的数据！！！
+. save "Data/Clean/IRRAnalysisFile_Penn_learning_wash.dta", replace
+file Data/Clean/IRRAnalysisFile_Penn_learning_wash.dta saved
+
+. 
+. log close
+      name:  <unnamed>
+       log:  E:\论文复现\IRR复现\logs/IRR_stage01.log
+  log type:  text
+ closed on:  30 Jul 2026, 16:18:40
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
